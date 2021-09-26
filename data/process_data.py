@@ -1,16 +1,29 @@
 import sys
-
+import pandas as pd
+from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+    df = messages.merge(categories, how="outer", on="id")
 
+    return df
 
 def clean_data(df):
-    pass
+    categories = df.categories.str.split(pat=";", n=-1, expand=True)
+    category_colnames = list(categories.iloc[0].str[:-2].values)
+    for column in categories:
+        categories.columns = category_colnames
+        categories[column] = categories[column].str[-1].astype(int)
+    df.drop(labels=["categories"], axis=1, inplace=True)
+    df = pd.concat([df, categories], axis=1)
+    df.drop_duplicates(inplace=True)
 
+    return df
 
 def save_data(df, database_filename):
-    pass  
+    engine = create_engine("sqlite:///", database_filename, ".db")
+    df.to_sql('disaster_messages', engine, index=False)
 
 
 def main():
