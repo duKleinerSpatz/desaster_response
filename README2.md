@@ -1,5 +1,7 @@
 # Disaster Response Pipeline Project
 
+A repository for the second project of the Udacity Nanodegree Programm "Data Scientist", in which a training set of disaster response messages will be transformed through data pipelines and classified for further uses.
+
 ### Instructions:
 1. Run the following commands in the project's root directory to set up your database and model.
 
