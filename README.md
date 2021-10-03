@@ -23,3 +23,7 @@ A repository for the second project of the Udacity Nanodegree Programm "Data Sci
 
 2. Run the following command in the app's directory to run your web app.
     `python run.py`
+
+### Sources:
+- data and base scripts were downloaded from Udacity's Data Scientist Course (https://www.udacity.com/)
+- data originated from Figure Eight
