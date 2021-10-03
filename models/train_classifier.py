@@ -11,6 +11,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -21,8 +22,17 @@ nltk.download(["wordnet", "punkt"])
 
 
 def load_data(database_filepath):
-    engine = create_engine(database_filepath)
-    df = pd.read_sql_table("disaster_messages", database_filepath)
+    """
+    function:
+        loads disaster messages dataset from sql-database
+    args:
+        database_filepath(str): filepath to database
+    returns:
+        X(numpy.ndarray): array containing the messages
+        Y(numpy.ndarray): array containing the suitable disaster categories for each message
+    """
+    engine = create_engine("sqlite:///{}".format(database_filepath))
+    df = pd.read_sql_table("disaster_messages", engine).sample(frac=0.1)
     X = df["message"].values
     Y = df.drop(labels=["id", "message", "original", "genre"], axis=1).values
     features = df.drop(labels=["id", "message", "original", "genre"], axis=1).columns
@@ -49,22 +59,38 @@ def tokenize(text):
     return lemmed
 
 
-def build_model(X, Y):
+def build_model():
+    """
+    function:
+        builds the machine learning model including optimized parameters with gridsearch
+    args:
+        -
+    returns:
+        cv(model): optimized model
+    """
     pipeline = Pipeline([
         ('tfidfvect', TfidfVectorizer(tokenizer=tokenize)),
+        #('to_dense', FunctionTransformer(lambda x: x.todense(), accept_sparse=True)),
         ('clf', MultiOutputClassifier(KNeighborsClassifier()))
     ])
 
-    return pipeline
+    params_pick = {
+        'tfidfvect__use_idf': (True, False),
+        'clf__estimator__n_neighbors': [5, 10]
+    }
+
+    cv = GridSearchCV(pipeline, param_grid=params_pick)
+
+    return cv
 
 
-def evaluate_model(model, X_test, Y_test, features):
+def evaluate_model(model, X_test, Y_test, categories):
     """
     function: prints out statistics of the results after fitting and predicting a model
     args:
         Y_test(numpy.ndarray): test data from train_test_split
         Y_pred(numpy.ndarray): predicted data
-        features(list of str): list of column names of the features to be predicted
+        categories(list of str): list of column names of the categories to be predicted
     return:
         df_res(DataFrame): DataFrame containing the classification report data for each feature
     """
@@ -82,7 +108,7 @@ def evaluate_model(model, X_test, Y_test, features):
     i = 0
     for y_test, y_pred in zip(Y_test.transpose(), Y_pred.transpose()):
         df_temp = pd.DataFrame.from_dict(classification_report(y_test, y_pred, output_dict=True, zero_division=1))
-        df_temp = pd.concat([df_temp], axis=1, keys=[features[i]])  # add column name as additional level
+        df_temp = pd.concat([df_temp], axis=1, keys=[categories[i]])  # add column name as additional level
         df_res = pd.concat([df_res, df_temp], axis=1)
         i += 1
 
@@ -90,14 +116,23 @@ def evaluate_model(model, X_test, Y_test, features):
     display(df_res.transpose().mean())
     # display(df_res.transpose())
 
+    # display best params
+    print("best parameters found by gridsearch:\n", model.best_params_)
 
 def save_model(model, model_filepath):
+    """
+    function:
+        saves model as pickle file
+    args:
+        model(model): model to be saved
+    """
     with open(model_filepath, 'wb') as f:
         pickle.dump(model, f)
 
 
 def main():
     if len(sys.argv) == 3:
+        print("Starting train_classifier.py on {}".format(datetime.now()))
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, features = load_data(database_filepath)
@@ -105,12 +140,18 @@ def main():
         
         print('Building model...')
         model = build_model()
-        
+
+        # calculate time to fit
+        start_time = time.time()
         print('Training model...')
         model.fit(X_train, Y_train)
-        
+        print("--- {:.0f}s seconds to fit model ---\n".format((time.time() - start_time)))
+
+        # calculate time to evaluate
+        start_time = time.time()
         print('Evaluating model...')
         evaluate_model(model, X_test, Y_test, features)
+        print("--- {:.0f}s seconds to evaluate model ---\n".format((time.time() - start_time)))
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)

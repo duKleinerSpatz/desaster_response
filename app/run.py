@@ -7,8 +7,8 @@ from nltk.tokenize import word_tokenize
 
 from flask import Flask
 from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
-from sklearn.externals import joblib
+from plotly.graph_objs import Bar, Heatmap
+import joblib
 from sqlalchemy import create_engine
 
 
@@ -26,11 +26,11 @@ def tokenize(text):
     return clean_tokens
 
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/disaster_response.db')
+df = pd.read_sql_table('disaster_messages', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/classifier.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -42,7 +42,9 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
-    
+    df_catcounts = df.iloc[:, 4:].sum(axis=0)
+    corr = df.iloc[:, 4:].corr()
+
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
@@ -62,6 +64,41 @@ def index():
                 'xaxis': {
                     'title': "Genre"
                 }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x = df_catcounts.index,
+                    y = df_catcounts.values
+                )
+            ],
+            'layout': {
+                'title': 'Counts of Categories',
+                'yaxis': {
+                    'title': "Counts"
+                },
+                'xaxis': {
+                    'title': "Categories"
+                },
+            }
+        },
+        {
+            'data': [
+                Heatmap(
+                    z=corr.values,
+                    x=corr.index,
+                    y=corr.columns
+                )
+            ],
+            'layout': {
+                'title': 'Correlation of Categories',
+                'yaxis': {
+                    'title': ""
+                },
+                'xaxis': {
+                    'title': ""
+                },
             }
         }
     ]
@@ -93,8 +130,8 @@ def go():
 
 
 def main():
-    app.run(host='0.0.0.0', port=3001, debug=True)
-
+    # app.run(host='0.0.0.0', port=3001, debug=True)
+    app.run(debug=True)
 
 if __name__ == '__main__':
     main()

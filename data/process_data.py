@@ -3,6 +3,15 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
+    """
+    function:
+        load and merge messages and categories data
+    args:
+        messages_filepath(str): path to file containing messages
+        categories_filepath(str): path to file containing categories
+    returns:
+        df(pd.DataFrame): DataFrame containing messages and matching categories
+    """
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories, how="outer", on="id")
@@ -10,11 +19,20 @@ def load_data(messages_filepath, categories_filepath):
     return df
 
 def clean_data(df):
+    """
+    function:
+        cleans the dataframe of messages and categories
+    args:
+        df(pd.DataFrame): dataframe containing messages and matching categories
+    regurns:
+        df(pd.DataFrame): cleaned dataframe containing messages and matching categories
+    """
     categories = df.categories.str.split(pat=";", n=-1, expand=True)
     category_colnames = list(categories.iloc[0].str[:-2].values)
+    categories.columns = category_colnames
     for column in categories:
-        categories.columns = category_colnames
         categories[column] = categories[column].str[-1].astype(int)
+    categories.replace(2, 1, inplace=True)
     df.drop(labels=["categories"], axis=1, inplace=True)
     df = pd.concat([df, categories], axis=1)
     df.drop_duplicates(inplace=True)
@@ -22,7 +40,14 @@ def clean_data(df):
     return df
 
 def save_data(df, database_filename):
-    engine = create_engine("sqlite:///", database_filename, ".db")
+    """
+    function:
+        saves the cleaned data as an sql table
+    args:
+        df(pd.DataFrame): cleaned dataframe to be saved as an sql data base
+        database_filename(str): filename of the saved sql data base
+    """
+    engine = create_engine("sqlite:///{}".format(database_filename))
     df.to_sql('disaster_messages', engine, index=False)
 
 
