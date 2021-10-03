@@ -4,8 +4,6 @@ from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
     """
-    function:
-        load and merge messages and categories data
     args:
         messages_filepath(str): path to file containing messages
         categories_filepath(str): path to file containing categories
@@ -20,8 +18,6 @@ def load_data(messages_filepath, categories_filepath):
 
 def clean_data(df):
     """
-    function:
-        cleans the dataframe of messages and categories
     args:
         df(pd.DataFrame): dataframe containing messages and matching categories
     regurns:
@@ -41,8 +37,6 @@ def clean_data(df):
 
 def save_data(df, database_filename):
     """
-    function:
-        saves the cleaned data as an sql table
     args:
         df(pd.DataFrame): cleaned dataframe to be saved as an sql data base
         database_filename(str): filename of the saved sql data base
@@ -52,6 +46,9 @@ def save_data(df, database_filename):
 
 
 def main():
+    """
+    loads from csv, cleans and saves data of disaster messages to an sqlite database
+    """
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]

@@ -23,8 +23,6 @@ nltk.download(["wordnet", "punkt"])
 
 def load_data(database_filepath):
     """
-    function:
-        loads disaster messages dataset from sql-database
     args:
         database_filepath(str): filepath to database
     returns:
@@ -32,7 +30,7 @@ def load_data(database_filepath):
         Y(numpy.ndarray): array containing the suitable disaster categories for each message
     """
     engine = create_engine("sqlite:///{}".format(database_filepath))
-    df = pd.read_sql_table("disaster_messages", engine).sample(frac=0.1)
+    df = pd.read_sql_table("disaster_messages", engine)  # .sample(frac=0.1)
     X = df["message"].values
     Y = df.drop(labels=["id", "message", "original", "genre"], axis=1).values
     features = df.drop(labels=["id", "message", "original", "genre"], axis=1).columns
@@ -42,8 +40,6 @@ def load_data(database_filepath):
 
 def tokenize(text):
     """
-    function:
-        separates messages into root form of lower case word tokens without punctuation or stopwords
     args:
         text(str): message to be later classified
     returns:
@@ -61,12 +57,10 @@ def tokenize(text):
 
 def build_model():
     """
-    function:
-        builds the machine learning model including optimized parameters with gridsearch
     args:
         -
     returns:
-        cv(model): optimized model
+        cv(model): with gridsearch optimized model
     """
     pipeline = Pipeline([
         ('tfidfvect', TfidfVectorizer(tokenizer=tokenize)),
@@ -86,7 +80,6 @@ def build_model():
 
 def evaluate_model(model, X_test, Y_test, categories):
     """
-    function: prints out statistics of the results after fitting and predicting a model
     args:
         Y_test(numpy.ndarray): test data from train_test_split
         Y_pred(numpy.ndarray): predicted data
@@ -114,15 +107,13 @@ def evaluate_model(model, X_test, Y_test, categories):
 
     # overall mean classification report values:
     display(df_res.transpose().mean())
-    # display(df_res.transpose())
+    display(df_res.transpose())
 
     # display best params
     print("best parameters found by gridsearch:\n", model.best_params_)
 
 def save_model(model, model_filepath):
     """
-    function:
-        saves model as pickle file
     args:
         model(model): model to be saved
     """
@@ -131,6 +122,10 @@ def save_model(model, model_filepath):
 
 
 def main():
+    """
+    load data from sqlite database, build a machine learning model to categorize disaster messages,
+    evaluate and save model as pickle file.
+    """
     if len(sys.argv) == 3:
         print("Starting train_classifier.py on {}".format(datetime.now()))
         database_filepath, model_filepath = sys.argv[1:]
